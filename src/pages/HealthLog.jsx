@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,6 +8,7 @@ export default function HealthLog() {
   const [cats, setCats] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     cat_id: '',
@@ -17,8 +19,8 @@ export default function HealthLog() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) loadData();
+  }, [user?.id]);
 
   async function loadData() {
     setLoading(true);
@@ -38,7 +40,8 @@ export default function HealthLog() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    await supabase.from('health_logs').insert({
+    setError('');
+    const { error: insertError } = await supabase.from('health_logs').insert({
       user_id: user.id,
       cat_id: form.cat_id,
       log_type: form.log_type,
@@ -46,6 +49,10 @@ export default function HealthLog() {
       description: form.description,
       notes: form.notes || null,
     });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
     setForm({
       cat_id: '',
       log_type: 'vet_visit',
@@ -58,7 +65,12 @@ export default function HealthLog() {
   }
 
   async function deleteLog(id) {
-    await supabase.from('health_logs').delete().eq('id', id);
+    if (!window.confirm('Delete this health log entry?')) return;
+    const { error: deleteError } = await supabase.from('health_logs').delete().eq('id', id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
     loadData();
   }
 
@@ -104,9 +116,15 @@ export default function HealthLog() {
         </button>
       </div>
 
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {cats.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-          You need to add at least one cat before logging health entries. Go to <a href="/cats" className="font-medium underline">My Cats</a> first.
+          You need to add at least one cat before logging health entries. Go to <Link to="/cats" className="font-medium underline">My Cats</Link> first.
         </div>
       )}
 

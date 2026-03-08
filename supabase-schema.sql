@@ -5,6 +5,59 @@
 
 -- Enable Row Level Security on all tables
 
+-- 0. Profiles table (for admin roles & OAuth user tracking)
+create table if not exists profiles (
+  id uuid references auth.users(id) on delete cascade primary key,
+  email text,
+  full_name text,
+  avatar_url text,
+  is_admin boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+
+create policy "Users can view their own profile"
+  on profiles for select using (auth.uid() = id);
+
+create policy "Users can update their own profile"
+  on profiles for update using (auth.uid() = id);
+
+create policy "Users can insert their own profile"
+  on profiles for insert with check (auth.uid() = id);
+
+-- Admin policies: admins can view all profiles and all data
+create policy "Admins can view all profiles"
+  on profiles for select using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
+
+create policy "Admins can update all profiles"
+  on profiles for update using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
+
+-- Auto-create profile on user signup via trigger
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, full_name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', ''),
+    coalesce(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', '')
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Drop trigger if it exists, then create
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
 -- 1. Cats table
 create table if not exists cats (
   id uuid default gen_random_uuid() primary key,
@@ -30,6 +83,12 @@ create policy "Users can update their own cats"
 
 create policy "Users can delete their own cats"
   on cats for delete using (auth.uid() = user_id);
+
+-- Admin policies for cats
+create policy "Admins can view all cats"
+  on cats for select using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
 
 -- 2. Feedings table
 create table if not exists feedings (
@@ -57,6 +116,12 @@ create policy "Users can update their own feedings"
 create policy "Users can delete their own feedings"
   on feedings for delete using (auth.uid() = user_id);
 
+-- Admin policies for feedings
+create policy "Admins can view all feedings"
+  on feedings for select using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
+
 -- 3. Health logs table
 create table if not exists health_logs (
   id uuid default gen_random_uuid() primary key,
@@ -82,3 +147,16 @@ create policy "Users can update their own health logs"
 
 create policy "Users can delete their own health logs"
   on health_logs for delete using (auth.uid() = user_id);
+
+-- Admin policies for health logs
+create policy "Admins can view all health logs"
+  on health_logs for select using (
+    exists (select 1 from profiles where id = auth.uid() and is_admin = true)
+  );
+
+-- ============================================
+-- IMPORTANT: After running this schema, make yourself an admin:
+--
+-- UPDATE profiles SET is_admin = true WHERE email = 'your-email@example.com';
+--
+-- ============================================

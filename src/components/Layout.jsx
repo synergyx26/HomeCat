@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout({ children }) {
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -13,6 +13,10 @@ export default function Layout({ children }) {
     { to: '/food', label: 'Food Tracker', icon: '🍽️' },
     { to: '/health', label: 'Health Log', icon: '💊' },
   ];
+
+  if (isAdmin) {
+    navLinks.push({ to: '/admin', label: 'Admin', icon: '⚙️' });
+  }
 
   const isActive = (path) => location.pathname === path;
 
@@ -46,7 +50,14 @@ export default function Layout({ children }) {
             </nav>
 
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-sm text-gray-500">{user?.email}</span>
+              <span className="hidden sm:inline text-sm text-gray-500">
+                {user?.user_metadata?.full_name || user?.email}
+              </span>
+              {isAdmin && (
+                <span className="hidden sm:inline text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                  Admin
+                </span>
+              )}
               <button
                 onClick={signOut}
                 className="text-sm text-gray-500 hover:text-gray-700 font-medium"

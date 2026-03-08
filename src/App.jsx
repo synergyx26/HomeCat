@@ -5,10 +5,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import Cats from './pages/Cats';
 import FoodTracker from './pages/FoodTracker';
 import HealthLog from './pages/HealthLog';
+import Admin from './pages/Admin';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -31,6 +33,7 @@ function AppRoutes() {
         path="/signup"
         element={user ? <Navigate to="/" replace /> : <Signup />}
       />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route
         path="/"
         element={
@@ -60,6 +63,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout><HealthLog /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Layout><Admin /></Layout>
           </ProtectedRoute>
         }
       />

@@ -6,13 +6,14 @@ export default function Cats() {
   const { user } = useAuth();
   const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
   const [form, setForm] = useState({ name: '', breed: '', age: '', weight: '', notes: '' });
 
   useEffect(() => {
-    loadCats();
-  }, []);
+    if (user?.id) loadCats();
+  }, [user?.id]);
 
   async function loadCats() {
     setLoading(true);
@@ -45,6 +46,7 @@ export default function Cats() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setError('');
     const payload = {
       user_id: user.id,
       name: form.name,
@@ -54,10 +56,13 @@ export default function Cats() {
       notes: form.notes || null,
     };
 
-    if (editingCat) {
-      await supabase.from('cats').update(payload).eq('id', editingCat.id);
-    } else {
-      await supabase.from('cats').insert(payload);
+    const { error: mutationError } = editingCat
+      ? await supabase.from('cats').update(payload).eq('id', editingCat.id)
+      : await supabase.from('cats').insert(payload);
+
+    if (mutationError) {
+      setError(mutationError.message);
+      return;
     }
 
     resetForm();
@@ -66,9 +71,12 @@ export default function Cats() {
 
   async function deleteCat(id) {
     if (!window.confirm('Are you sure you want to remove this cat? This will also delete all related feeding and health records.')) return;
-    await supabase.from('feedings').delete().eq('cat_id', id);
-    await supabase.from('health_logs').delete().eq('cat_id', id);
-    await supabase.from('cats').delete().eq('id', id);
+    setError('');
+    const { error: deleteError } = await supabase.from('cats').delete().eq('id', id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
     loadCats();
   }
 
@@ -94,6 +102,12 @@ export default function Cats() {
           + Add Cat
         </button>
       </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Add/Edit form */}
       {showForm && (

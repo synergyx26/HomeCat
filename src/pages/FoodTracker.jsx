@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,6 +8,7 @@ export default function FoodTracker() {
   const [cats, setCats] = useState([]);
   const [feedings, setFeedings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     cat_id: '',
@@ -17,8 +19,8 @@ export default function FoodTracker() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user?.id) loadData();
+  }, [user?.id]);
 
   async function loadData() {
     setLoading(true);
@@ -38,7 +40,8 @@ export default function FoodTracker() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    await supabase.from('feedings').insert({
+    setError('');
+    const { error: insertError } = await supabase.from('feedings').insert({
       user_id: user.id,
       cat_id: form.cat_id,
       food_type: form.food_type,
@@ -46,6 +49,10 @@ export default function FoodTracker() {
       fed_at: form.fed_at,
       notes: form.notes || null,
     });
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
     setForm({
       cat_id: '',
       food_type: '',
@@ -58,7 +65,12 @@ export default function FoodTracker() {
   }
 
   async function deleteFeeding(id) {
-    await supabase.from('feedings').delete().eq('id', id);
+    if (!window.confirm('Delete this feeding record?')) return;
+    const { error: deleteError } = await supabase.from('feedings').delete().eq('id', id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
     loadData();
   }
 
@@ -86,9 +98,15 @@ export default function FoodTracker() {
         </button>
       </div>
 
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {cats.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-          You need to add at least one cat before logging feedings. Go to <a href="/cats" className="font-medium underline">My Cats</a> first.
+          You need to add at least one cat before logging feedings. Go to <Link to="/cats" className="font-medium underline">My Cats</Link> first.
         </div>
       )}
 

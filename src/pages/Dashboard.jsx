@@ -8,15 +8,17 @@ export default function Dashboard() {
   const [cats, setCats] = useState([]);
   const [recentFeedings, setRecentFeedings] = useState([]);
   const [recentHealth, setRecentHealth] = useState([]);
+  const [feedingsCount, setFeedingsCount] = useState(0);
+  const [healthCount, setHealthCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (user?.id) loadDashboardData();
+  }, [user?.id]);
 
   async function loadDashboardData() {
     setLoading(true);
-    const [catsRes, feedingsRes, healthRes] = await Promise.all([
+    const [catsRes, feedingsRes, healthRes, feedingsCountRes, healthCountRes] = await Promise.all([
       supabase
         .from('cats')
         .select('*')
@@ -34,11 +36,21 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .order('log_date', { ascending: false })
         .limit(5),
+      supabase
+        .from('feedings')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+      supabase
+        .from('health_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id),
     ]);
 
     if (catsRes.data) setCats(catsRes.data);
     if (feedingsRes.data) setRecentFeedings(feedingsRes.data);
     if (healthRes.data) setRecentHealth(healthRes.data);
+    setFeedingsCount(feedingsCountRes.count ?? 0);
+    setHealthCount(healthCountRes.count ?? 0);
     setLoading(false);
   }
 
@@ -76,8 +88,8 @@ export default function Dashboard() {
               <span className="text-xl">🍽️</span>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{recentFeedings.length}</p>
-              <p className="text-sm text-gray-500">Recent Feedings</p>
+              <p className="text-2xl font-bold text-gray-900">{feedingsCount}</p>
+              <p className="text-sm text-gray-500">Total Feedings</p>
             </div>
           </div>
         </div>
@@ -87,7 +99,7 @@ export default function Dashboard() {
               <span className="text-xl">💊</span>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{recentHealth.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{healthCount}</p>
               <p className="text-sm text-gray-500">Health Entries</p>
             </div>
           </div>
@@ -160,7 +172,7 @@ export default function Dashboard() {
                 <div>
                   <span className="font-medium text-gray-900">{f.cats?.name}</span>
                   <span className="text-gray-500 ml-2 text-sm">
-                    {f.food_type} — {f.amount}
+                    {f.food_type}{f.amount ? ` — ${f.amount}` : ''}
                   </span>
                 </div>
                 <span className="text-xs text-gray-400">
