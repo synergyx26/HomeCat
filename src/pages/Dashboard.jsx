@@ -28,7 +28,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) loadDashboardData();
+    if (user?.id) {
+      loadDashboardData();
+    } else {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   async function loadDashboardData() {

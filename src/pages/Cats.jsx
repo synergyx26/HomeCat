@@ -43,7 +43,11 @@ export default function Cats() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (user?.id) loadCats();
+    if (user?.id) {
+      loadCats();
+    } else {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   async function loadCats() {
