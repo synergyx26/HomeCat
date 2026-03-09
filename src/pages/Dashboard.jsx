@@ -33,40 +33,45 @@ export default function Dashboard() {
 
   async function loadDashboardData() {
     setLoading(true);
-    const [catsRes, feedingsRes, healthRes, feedingsCountRes, healthCountRes] = await Promise.all([
-      supabase
-        .from('cats')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name'),
-      supabase
-        .from('feedings')
-        .select('*, cats(name)')
-        .eq('user_id', user.id)
-        .order('fed_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('health_logs')
-        .select('*, cats(name)')
-        .eq('user_id', user.id)
-        .order('log_date', { ascending: false })
-        .limit(5),
-      supabase
-        .from('feedings')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id),
-      supabase
-        .from('health_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id),
-    ]);
+    try {
+      const [catsRes, feedingsRes, healthRes, feedingsCountRes, healthCountRes] = await Promise.all([
+        supabase
+          .from('cats')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name'),
+        supabase
+          .from('feedings')
+          .select('*, cats(name)')
+          .eq('user_id', user.id)
+          .order('fed_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('health_logs')
+          .select('*, cats(name)')
+          .eq('user_id', user.id)
+          .order('log_date', { ascending: false })
+          .limit(5),
+        supabase
+          .from('feedings')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        supabase
+          .from('health_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+      ]);
 
-    if (catsRes.data) setCats(catsRes.data);
-    if (feedingsRes.data) setRecentFeedings(feedingsRes.data);
-    if (healthRes.data) setRecentHealth(healthRes.data);
-    setFeedingsCount(feedingsCountRes.count ?? 0);
-    setHealthCount(healthCountRes.count ?? 0);
-    setLoading(false);
+      if (catsRes.data) setCats(catsRes.data);
+      if (feedingsRes.data) setRecentFeedings(feedingsRes.data);
+      if (healthRes.data) setRecentHealth(healthRes.data);
+      setFeedingsCount(feedingsCountRes.count ?? 0);
+      setHealthCount(healthCountRes.count ?? 0);
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (loading) {

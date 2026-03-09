@@ -24,18 +24,23 @@ export default function HealthLog() {
 
   async function loadData() {
     setLoading(true);
-    const [catsRes, logsRes] = await Promise.all([
-      supabase.from('cats').select('*').eq('user_id', user.id).order('name'),
-      supabase
-        .from('health_logs')
-        .select('*, cats(name)')
-        .eq('user_id', user.id)
-        .order('log_date', { ascending: false })
-        .limit(50),
-    ]);
-    if (catsRes.data) setCats(catsRes.data);
-    if (logsRes.data) setLogs(logsRes.data);
-    setLoading(false);
+    try {
+      const [catsRes, logsRes] = await Promise.all([
+        supabase.from('cats').select('*').eq('user_id', user.id).order('name'),
+        supabase
+          .from('health_logs')
+          .select('*, cats(name)')
+          .eq('user_id', user.id)
+          .order('log_date', { ascending: false })
+          .limit(50),
+      ]);
+      if (catsRes.data) setCats(catsRes.data);
+      if (logsRes.data) setLogs(logsRes.data);
+    } catch (err) {
+      console.error('Health log load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e) {

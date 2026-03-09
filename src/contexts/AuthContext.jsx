@@ -41,24 +41,36 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        ensureProfile(currentUser).then(() => checkAdmin(currentUser.id));
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      try {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await ensureProfile(currentUser);
+          await checkAdmin(currentUser.id);
+        }
+      } catch (err) {
+        console.error('Session init error:', err);
+      } finally {
+        setLoading(false);
       }
+    }).catch(() => {
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          await ensureProfile(currentUser);
-          await checkAdmin(currentUser.id);
-        } else if (!currentUser) {
-          setIsAdmin(false);
+        try {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            await ensureProfile(currentUser);
+            await checkAdmin(currentUser.id);
+          } else if (!currentUser) {
+            setIsAdmin(false);
+          }
+        } catch (err) {
+          console.error('Auth state change error:', err);
         }
       }
     );

@@ -48,13 +48,18 @@ export default function Cats() {
 
   async function loadCats() {
     setLoading(true);
-    const { data } = await supabase
-      .from('cats')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('name');
-    if (data) setCats(data);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from('cats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+      if (data) setCats(data);
+    } catch (err) {
+      console.error('Cats load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function resetForm() {

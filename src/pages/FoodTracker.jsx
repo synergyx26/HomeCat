@@ -24,18 +24,23 @@ export default function FoodTracker() {
 
   async function loadData() {
     setLoading(true);
-    const [catsRes, feedingsRes] = await Promise.all([
-      supabase.from('cats').select('*').eq('user_id', user.id).order('name'),
-      supabase
-        .from('feedings')
-        .select('*, cats(name)')
-        .eq('user_id', user.id)
-        .order('fed_at', { ascending: false })
-        .limit(50),
-    ]);
-    if (catsRes.data) setCats(catsRes.data);
-    if (feedingsRes.data) setFeedings(feedingsRes.data);
-    setLoading(false);
+    try {
+      const [catsRes, feedingsRes] = await Promise.all([
+        supabase.from('cats').select('*').eq('user_id', user.id).order('name'),
+        supabase
+          .from('feedings')
+          .select('*, cats(name)')
+          .eq('user_id', user.id)
+          .order('fed_at', { ascending: false })
+          .limit(50),
+      ]);
+      if (catsRes.data) setCats(catsRes.data);
+      if (feedingsRes.data) setFeedings(feedingsRes.data);
+    } catch (err) {
+      console.error('Food tracker load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e) {

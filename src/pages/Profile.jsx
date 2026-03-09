@@ -21,29 +21,38 @@ export default function Profile() {
 
   async function loadProfile() {
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    if (data) {
-      setProfile(data);
-      setFullName(data.full_name || '');
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setProfile(data);
+        setFullName(data.full_name || '');
+      }
+    } catch (err) {
+      console.error('Profile load error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function loadStats() {
-    const [catsRes, feedingsRes, healthRes] = await Promise.all([
-      supabase.from('cats').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('feedings').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('health_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    ]);
-    setStats({
-      cats: catsRes.count || 0,
-      feedings: feedingsRes.count || 0,
-      healthLogs: healthRes.count || 0,
-    });
+    try {
+      const [catsRes, feedingsRes, healthRes] = await Promise.all([
+        supabase.from('cats').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('feedings').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('health_logs').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      ]);
+      setStats({
+        cats: catsRes.count || 0,
+        feedings: feedingsRes.count || 0,
+        healthLogs: healthRes.count || 0,
+      });
+    } catch (err) {
+      console.error('Stats load error:', err);
+    }
   }
 
   async function handleSave() {
