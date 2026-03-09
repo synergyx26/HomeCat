@@ -3,6 +3,16 @@ import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
+  const today = new Date();
+  const dob = new Date(dateOfBirth);
+  let years = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) years--;
+  return years < 1 ? '<1 yr' : `${years} yrs`;
+}
+
 export default function Admin() {
   const { user, isAdmin } = useAuth();
   const [profiles, setProfiles] = useState([]);
@@ -205,7 +215,7 @@ export default function Admin() {
                     <tr key={cat.id}>
                       <td className="px-5 py-3 font-medium text-gray-900">{cat.name}</td>
                       <td className="px-5 py-3 text-gray-600">{cat.breed || '-'}</td>
-                      <td className="px-5 py-3 text-gray-600">{cat.age != null ? `${cat.age} yrs` : '-'}</td>
+                      <td className="px-5 py-3 text-gray-600">{cat.date_of_birth ? calculateAge(cat.date_of_birth) : '-'}</td>
                       <td className="px-5 py-3 text-gray-600">{cat.weight != null ? `${cat.weight} kg` : '-'}</td>
                       <td className="px-5 py-3 text-gray-500">{new Date(cat.created_at).toLocaleDateString()}</td>
                     </tr>
