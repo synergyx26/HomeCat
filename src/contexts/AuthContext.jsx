@@ -8,6 +8,25 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  async function ensureProfile(currentUser) {
+    if (!currentUser) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (!data) {
+      const meta = currentUser.user_metadata || {};
+      await supabase.from('profiles').upsert({
+        id: currentUser.id,
+        email: currentUser.email,
+        full_name: meta.full_name || meta.name || '',
+        avatar_url: meta.avatar_url || meta.picture || '',
+      });
+    }
+  }
+
   async function checkAdmin(userId) {
     if (!userId) {
       setIsAdmin(false);
@@ -26,18 +45,19 @@ export function AuthProvider({ children }) {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        checkAdmin(currentUser.id);
+        ensureProfile(currentUser).then(() => checkAdmin(currentUser.id));
       }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
-        if (currentUser) {
+        if (currentUser && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          await ensureProfile(currentUser);
           await checkAdmin(currentUser.id);
-        } else {
+        } else if (!currentUser) {
           setIsAdmin(false);
         }
       }

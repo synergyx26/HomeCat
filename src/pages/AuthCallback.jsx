@@ -6,20 +6,32 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/', { replace: true });
+    async function handleCallback() {
+      // Handle PKCE code exchange
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
       }
-    });
 
-    // Fallback: if session already exists, redirect
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Check if session exists after exchange
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         navigate('/', { replace: true });
+        return;
       }
-    });
 
-    return () => subscription.unsubscribe();
+      // Listen for auth state change as fallback
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN') {
+          navigate('/', { replace: true });
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+
+    handleCallback();
   }, [navigate]);
 
   return (
