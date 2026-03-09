@@ -23,32 +23,45 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    if (isAdmin) loadAdminData();
+    if (isAdmin) {
+      loadAdminData();
+    } else {
+      setLoading(false);
+    }
   }, [isAdmin]);
 
   async function loadAdminData() {
     setLoading(true);
-    const [profilesRes, catsRes, feedingsRes, healthRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('cats').select('*').order('created_at', { ascending: false }),
-      supabase.from('feedings').select('*, cats(name)').order('fed_at', { ascending: false }).limit(100),
-      supabase.from('health_logs').select('*, cats(name)').order('log_date', { ascending: false }).limit(100),
-    ]);
+    try {
+      const [profilesRes, catsRes, feedingsRes, healthRes] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('cats').select('*').order('created_at', { ascending: false }),
+        supabase.from('feedings').select('*, cats(name)').order('fed_at', { ascending: false }).limit(100),
+        supabase.from('health_logs').select('*, cats(name)').order('log_date', { ascending: false }).limit(100),
+      ]);
 
-    if (profilesRes.data) setProfiles(profilesRes.data);
-    if (catsRes.data) setAllCats(catsRes.data);
-    if (feedingsRes.data) setAllFeedings(feedingsRes.data);
-    if (healthRes.data) setAllHealthLogs(healthRes.data);
-    setLoading(false);
+      if (profilesRes.data) setProfiles(profilesRes.data);
+      if (catsRes.data) setAllCats(catsRes.data);
+      if (feedingsRes.data) setAllFeedings(feedingsRes.data);
+      if (healthRes.data) setAllHealthLogs(healthRes.data);
+    } catch (err) {
+      console.error('Admin data load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function toggleAdmin(profileId, currentStatus) {
     if (profileId === user.id) return;
-    await supabase
-      .from('profiles')
-      .update({ is_admin: !currentStatus })
-      .eq('id', profileId);
-    loadAdminData();
+    try {
+      await supabase
+        .from('profiles')
+        .update({ is_admin: !currentStatus })
+        .eq('id', profileId);
+      loadAdminData();
+    } catch (err) {
+      console.error('Toggle admin error:', err);
+    }
   }
 
   const logTypeLabels = {

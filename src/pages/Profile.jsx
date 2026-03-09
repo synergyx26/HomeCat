@@ -16,6 +16,8 @@ export default function Profile() {
     if (user?.id) {
       loadProfile();
       loadStats();
+    } else {
+      setLoading(false);
     }
   }, [user?.id]);
 

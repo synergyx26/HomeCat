@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -15,6 +15,17 @@ import Profile from './pages/Profile';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Auth callback must always be accessible (even during auth loading)
+  // to handle OAuth code exchange without deadlocking
+  if (location.pathname === '/auth/callback') {
+    return (
+      <Routes>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+      </Routes>
+    );
+  }
 
   if (loading) {
     return (

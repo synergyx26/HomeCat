@@ -1,12 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
+
+const AUTH_TIMEOUT_MS = 8000;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(true);
+
+  function finishLoading() {
+    if (loadingRef.current) {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }
 
   async function ensureProfile(currentUser) {
     if (!currentUser) return;
@@ -41,6 +51,14 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    // Safety timeout: if auth init takes too long, stop blocking the app
+    const timeout = setTimeout(() => {
+      if (loadingRef.current) {
+        console.warn('Auth initialization timed out, proceeding without session');
+        finishLoading();
+      }
+    }, AUTH_TIMEOUT_MS);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       try {
         const currentUser = session?.user ?? null;
@@ -52,10 +70,11 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error('Session init error:', err);
       } finally {
-        setLoading(false);
+        finishLoading();
       }
-    }).catch(() => {
-      setLoading(false);
+    }).catch((err) => {
+      console.error('getSession failed:', err);
+      finishLoading();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -75,7 +94,10 @@ export function AuthProvider({ children }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {

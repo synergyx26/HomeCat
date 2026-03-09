@@ -19,7 +19,11 @@ export default function HealthLog() {
   });
 
   useEffect(() => {
-    if (user?.id) loadData();
+    if (user?.id) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
   }, [user?.id]);
 
   async function loadData() {
