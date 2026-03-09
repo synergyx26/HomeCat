@@ -3,6 +3,21 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
+  const today = new Date();
+  const dob = new Date(dateOfBirth);
+  let years = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) years--;
+  if (years < 1) {
+    let months = (today.getFullYear() - dob.getFullYear()) * 12 + (today.getMonth() - dob.getMonth());
+    if (today.getDate() < dob.getDate()) months--;
+    return months <= 0 ? 'Under 1 month' : `${months} month${months === 1 ? '' : 's'}`;
+  }
+  return `${years} year${years === 1 ? '' : 's'}`;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [cats, setCats] = useState([]);
@@ -133,13 +148,17 @@ export default function Dashboard() {
             {cats.map((cat) => (
               <div key={cat.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-cat-100 rounded-full flex items-center justify-center text-2xl">
-                    🐱
+                  <div className="w-12 h-12 bg-cat-100 rounded-full flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                    {cat.image_url ? (
+                      <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                    ) : (
+                      '🐱'
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{cat.name}</h3>
                     <p className="text-sm text-gray-500">
-                      {cat.breed || 'Unknown breed'} · {cat.age ? `${cat.age} years` : 'Age unknown'}
+                      {cat.breed || 'Unknown breed'} · {cat.date_of_birth ? calculateAge(cat.date_of_birth) : 'Age unknown'}
                     </p>
                   </div>
                 </div>

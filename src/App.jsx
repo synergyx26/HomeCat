@@ -11,6 +11,7 @@ import Cats from './pages/Cats';
 import FoodTracker from './pages/FoodTracker';
 import HealthLog from './pages/HealthLog';
 import Admin from './pages/Admin';
+import Profile from './pages/Profile';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -63,6 +64,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout><HealthLog /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout><Profile /></Layout>
           </ProtectedRoute>
         }
       />

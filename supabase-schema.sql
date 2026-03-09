@@ -64,8 +64,13 @@ create table if not exists cats (
   user_id uuid references auth.users(id) on delete cascade not null,
   name text not null,
   breed text,
-  age integer,
+  date_of_birth date,
   weight numeric(5,2),
+  color text,
+  gender text,
+  chip_id text,
+  indoor_outdoor text,
+  image_url text,
   notes text,
   created_at timestamptz default now()
 );
@@ -153,6 +158,43 @@ create policy "Admins can view all health logs"
   on health_logs for select using (
     exists (select 1 from profiles where id = auth.uid() and is_admin = true)
   );
+
+-- ============================================
+-- 4. Storage bucket for cat profile images
+-- ============================================
+insert into storage.buckets (id, name, public)
+  values ('cat-images', 'cat-images', true)
+  on conflict (id) do nothing;
+
+create policy "Authenticated users can upload cat images"
+  on storage.objects for insert
+  with check (bucket_id = 'cat-images' and auth.role() = 'authenticated');
+
+create policy "Authenticated users can update cat images"
+  on storage.objects for update
+  using (bucket_id = 'cat-images' and auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete cat images"
+  on storage.objects for delete
+  using (bucket_id = 'cat-images' and auth.role() = 'authenticated');
+
+create policy "Anyone can view cat images"
+  on storage.objects for select
+  using (bucket_id = 'cat-images');
+
+-- ============================================
+-- MIGRATION: If upgrading from previous schema, run:
+--
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS color TEXT;
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS chip_id TEXT;
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS gender TEXT;
+-- ALTER TABLE cats ADD COLUMN IF NOT EXISTS indoor_outdoor TEXT;
+-- ALTER TABLE cats DROP COLUMN IF EXISTS age;
+--
+-- Then run the storage bucket section above.
+-- ============================================
 
 -- ============================================
 -- IMPORTANT: After running this schema, make yourself an admin:
